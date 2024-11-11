@@ -1,0 +1,2 @@
+[routers]
+router_a ansible_host=192.168.29.70 ansible_user=admin ansible_password=admin ansible_network_os=cisco.iosxr ansible_connection=network_cli
