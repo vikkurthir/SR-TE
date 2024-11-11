@@ -1,0 +1,47 @@
+---
+name: configuring Segment Routing TE Global Config Playbook
+  connection: network_cli
+  gather_facts: false
+  hosts: iosxr
+  vars:
+   blank_list: []
+  tasks:
+name: Getting Output of show isis nei command
+      iosxr_command:
+        commands:
+show isis nei
+      register: output
+name: printing Output of show isis nei command
+      debug:
+        var: output
+name: Create new fact from register output
+      set_fact:
+        show_isis_new: "{{ output.stdout[0].split() }}"
+name: Print new show isis output
+      debug:
+        var: show_isis_new
+name : Getting interface number
+      set_fact:
+        blank_list: "{{ blank_list + [item]}}"
+      with_items: "{{ show_isis_new }}"
+      when: "'Gi' in item"
+name : point-to-point config
+      iosxr_config:
+        lines:
+point-to-point
+        parents:
+router isis CORE
+interface {{ item }}
+      with_items: "{{ blank_list }}"
+name: save
+      copy:
+        content: "{{ blank_list }}"
+        dest: "./{{ inventory_hostname }}-isis_interface_list.txt"
+name: router-id config and te for level-2
+      iosxr_config:
+        lines:
+mpls traffic-eng level-2-only
+mpls traffic-eng router-id Loopback0
+        parents:
+router isis CORE
+address-family ipv4 unicast
