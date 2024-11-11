@@ -1,0 +1,32 @@
+---
+- name: Configure SR-TE on Router A
+  hosts: routers
+  gather_facts: no
+  tasks:
+    - name: Configure SR-TE policy
+      iosxr_config:
+        lines:
+          - "mpls traffic-eng"
+          - "policy my-srte-policy"
+          - " color 10"                           # Optional traffic class/color
+          - " end-point ipv4 3.3.3.3"             # Destination IP (Router C’s Loopback)
+          - " candidate-paths"
+          - "  preference 100"
+          - "  explicit-path name path-via-b"     # Name of the explicit path
+          - "   index 10 next-hop ipv4 2.2.2.2"   # Intermediate hop (Router B’s Loopback IP)
+          - "   index 20 next-hop ipv4 3.3.3.3"   # Final destination (Router C’s Loopback IP)
+        before: "mpls traffic-eng"
+        parents: "policy my-srte-policy"
+      register: sr_te_output
+
+    - name: Enable MPLS TE on the interface
+      iosxr_config:
+        lines:
+          - "mpls traffic-eng tunnels"
+        parents: "interface GigabitEthernet0/0/0/1"  # Replace with actual interface name
+      register: mpls_te_output
+
+    - name: Save configuration
+      iosxr_command:
+        commands: "commit"
+      when: sr_te_output.changed or mpls_te_output.changed
